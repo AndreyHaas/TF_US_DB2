@@ -1,0 +1,21 @@
+Aufgabe 1:
+-----------
+
+An welchen Stellen in einem SQL-Statement können Subselects verwendet werden?
+Findet für alle Varianten eine halbwegs sinnvolle Anwendung des Subselects.
+
+
+Aufgabe 2:
+-----------
+
+Schreibt eine Stored Procedure, die ein Backup (mit Zeitstempel) der Tabelle Kunde erstellt.
+Diese Stored Procedure soll JEDE Minute automatisch aufgerufen werden.
+
+
+Aufgabe 3:
+-----------
+Erstellt einen Trigger, der nach einem Insert in die Kunden-Tabelle
+
+a) (einfach) eine Log-Tabelle füllt. Die Tabelle muss vorher angelegt werden.
+oder
+b) (schwer) eine Meldung ausgibt, dass Daten eingefügt wurden.

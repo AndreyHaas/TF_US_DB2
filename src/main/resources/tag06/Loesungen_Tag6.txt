@@ -1,0 +1,102 @@
+Basis für die Aufgaben ist die Datenbank "geld_her".
+
+Aufgabe 1:
+----------
+An welchen Stellen in einem SQL-Statement können Subselects verwendet werden?
+Findet für alle Varianten eine halbwegs sinnvolle Anwendung des Subselects.
+
+
+Aufgabe 2:
+----------
+Schreibt eine Stored Procedure, die ein Backup (mit Zeitstempel) der Tabelle Kunde erstellt.
+Diese Stored Procedure soll JEDE Minute automatisch aufgerufen werden.
+
+
+Aufgabe 3:
+----------
+Erstellt einen Trigger, der nach einem Insert in die Kunden-Tabelle
+	a) (einfach) eine Log-Tabelle füllt. Die Tabelle muss vorher angelegt werden.
+	oder
+	b) (schwer) eine Meldung ausgibt, dass Daten eingefügt wurden.
+
+
+Zeit: Bis 10:45 Uhr
+
+
+Lösung 1:
+----------
+Produktname, Preis und Durchschnittspreis für alle Produkte
+SELECT produkt_name, euro_preis, (SELECT AVG(euro_preis) FROM Produkt) AS Durchschnitt
+FROM Produkt
+GROUP BY produkt_id;
+
+
+Produktname, Preis alle Produkte, die teurer als 30 Euro sind
+SELECT produkt_name, euro_preis
+FROM Produkt
+WHERE euro_preis > 30;
+
+mit Subselect in FROM
+SELECT produkt_name, euro_preis
+FROM (SELECT * FROM produkt WHERE produkt.euro_preis > 30) AS test;
+
+mit Subselect in WHERE
+SELECT produkt_name, euro_preis
+FROM produkt
+WHERE euro_preis NOT IN (SELECT euro_preis FROM produkt WHERE euro_preis < 30);
+
+
+Lösung 2:
+---------
+DELIMITER $$
+CREATE PROCEDURE Backup_DatumZeit(IN tabelle VARCHAR(64))
+BEGIN
+    DECLARE zeitstempel VARCHAR(20);
+    DECLARE backup_tabelle VARCHAR(90);
+    DECLARE sql_befehl TEXT;
+
+    -- Zeitstempel im Format YYYY_MM_DD_HHMMSS generieren
+    SET zeitstempel = DATE_FORMAT(NOW(), '%Y_%m_%d_%H%i%s');
+    
+    -- Den neuen Tabellennamen zusammensetzen
+    SET backup_tabelle = CONCAT(tabelle, '_backup_', zeitstempel);
+
+    -- 1. Befehl: Struktur der Tabelle kopieren
+    SET @sql_struktur = CONCAT('CREATE TABLE ', backup_tabelle, ' LIKE ', tabelle);
+    PREPARE stmt1 FROM @sql_struktur;
+    EXECUTE stmt1;
+    DEALLOCATE PREPARE stmt1;
+
+    -- 2. Befehl: Daten in die neue Tabelle einfügen
+    SET @sql_daten = CONCAT('INSERT INTO ', backup_tabelle, ' SELECT * FROM ', tabelle);
+    PREPARE stmt2 FROM @sql_daten;
+    EXECUTE stmt2;
+    DEALLOCATE PREPARE stmt2;
+
+    SELECT CONCAT('Backup erfolgreich erstellt: ', backup_tabelle) AS Status;
+END $$
+
+DELIMITER ;
+
+Timer setzen:
+CREATE DEFINER=`root`@`localhost` EVENT `Backup_Kunde` ON SCHEDULE EVERY 1 MINUTE STARTS '2026-06-09 09:45:00' ENDS '2026-06-09 09:55:00' ON COMPLETION PRESERVE ENABLE DO CALL Backup_DatumZeit('kunde');
+
+
+Lösung 3:
+---------
+DELIMITER $$
+CREATE TRIGGER NachInsert
+AFTER INSERT ON kunde
+FOR EACH ROW
+    BEGIN
+        SET @daten = CONCAT(
+            'Erfolgreich geschrieben: Spalte1 = ', NEW.Vorname, 
+            ', Spalte2 = ', NEW.Nachname, ', Spalte3 = ', NEW.Email
+        );
+END$$
+DELIMITER ;
+
+
+Testen:
+INSERT INTO kunde (vorname, Nachname, email) VALUES ("Hansi", "Wurstig", "hansi@wurstig.de");
+SELECT @daten;
